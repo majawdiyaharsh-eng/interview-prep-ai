@@ -6,6 +6,7 @@ const sessionSchema = new mongoose.Schema(
     role: { type: String, required: true, trim: true },
     experience: { type: String, required: true },
     description: { type: String, default: "" },
+    difficulty: { type: String, enum: ["Easy", "Medium", "Hard"], default: "Medium" },
     questions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }],
   },
   { timestamps: true }

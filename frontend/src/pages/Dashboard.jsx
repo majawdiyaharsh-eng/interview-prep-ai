@@ -59,6 +59,7 @@ const Dashboard = () => {
   const [role, setRole] = useState("");
   const [experience, setExperience] = useState("");
   const [description, setDescription] = useState("");
+  const [difficulty, setDifficulty] = useState("Medium");
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -99,9 +100,9 @@ const Dashboard = () => {
     }
     setCreating(true);
     try {
-      const res = await axiosInstance.post("/session/create", { role, experience, description });
+      const res = await axiosInstance.post("/session/create", { role, experience, description, difficulty });
       setShowModal(false);
-      setRole(""); setExperience(""); setDescription("");
+      setRole(""); setExperience(""); setDescription(""); setDifficulty("Medium");
       toast.success("Session created successfully!");
       navigate(`/session/${res.data._id}`);
     } catch (err) {
@@ -411,6 +412,7 @@ const Dashboard = () => {
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {[
                         `${session.experience} yrs exp`,
+                        `${session.difficulty || "Medium"}`,
                         `${session.questions.length} Q&A`,
                         new Date(session.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
                       ].map(tag => (
@@ -528,6 +530,31 @@ const Dashboard = () => {
                     />
                   </div>
                 ))}
+
+                {/* Difficulty Level Dropdown */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    fontSize: 13, fontWeight: 600, marginBottom: 6, color: "var(--text)",
+                  }}>
+                    <span style={{ fontSize: 14 }}>🎯</span> Difficulty Level
+                  </label>
+                  <select
+                    value={difficulty}
+                    onChange={e => setDifficulty(e.target.value)}
+                    style={{
+                      width: "100%", background: "var(--bg-input)",
+                      border: "1px solid var(--border-input)", borderRadius: "var(--radius-md)",
+                      padding: "12px 14px", fontSize: 14, color: "var(--text)",
+                      fontFamily: "inherit", transition: "all var(--transition-fast)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
+                </div>
 
                 <motion.button
                   type="submit" disabled={creating}

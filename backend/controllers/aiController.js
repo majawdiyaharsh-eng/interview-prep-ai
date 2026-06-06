@@ -15,7 +15,8 @@ const generateQuestions = async (req, res) => {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    const prompt = `Generate ${numberOfQuestions} technical interview questions for a ${role} position with ${experience} years of experience. Return ONLY a valid JSON array with no markdown in this format: [{"question": "Question text here","answer": "Answer text here"}]`;
+    const difficulty = session.difficulty || "Medium";
+    const prompt = `Generate ${numberOfQuestions} ${difficulty}-level technical interview questions for a ${role} position with ${experience} years of experience. Return ONLY a valid JSON array with no markdown in this format: [{"question": "Question text here","answer": "Answer text here"}]`;
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
@@ -280,7 +281,7 @@ async function generateFromResume(req, res) {
       return res.status(400).json({ message: "Could not extract enough text from the resume. Please upload a valid PDF." });
     }
 
-    const { role, numberOfQuestions = 10 } = req.body;
+    const { role, numberOfQuestions = 10, difficulty = "Medium" } = req.body;
     const targetRole = role || "Software Developer";
 
     // Step 1: Extract skills and profile from resume
@@ -304,7 +305,7 @@ ${resumeText.substring(0, 3000)}`;
     }
 
     // Step 2: Generate interview questions based on resume + role
-    const questionPrompt = `Based on this candidate's resume, generate ${numberOfQuestions} targeted interview questions for a ${targetRole} position.
+    const questionPrompt = `Based on this candidate's resume, generate ${numberOfQuestions} targeted ${difficulty}-level interview questions for a ${targetRole} position.
 
 Candidate Profile:
 - Skills: ${(profileData.skills || []).join(", ")}
@@ -315,7 +316,7 @@ Generate questions that:
 1. Test their claimed skills and technologies
 2. Are relevant to the ${targetRole} role
 3. Mix technical, behavioral, and scenario-based questions
-4. Range from easy to hard difficulty
+4. Consistently match the requested difficulty: ${difficulty}
 
 Return ONLY a valid JSON array with no markdown: [{"question": "...", "answer": "..."}]`;
 
@@ -333,6 +334,7 @@ Return ONLY a valid JSON array with no markdown: [{"question": "...", "answer": 
       role: targetRole,
       experience: profileData.experience ? parseInt(profileData.experience) || 0 : 0,
       description: `Resume-based: ${profileData.summary || "Questions generated from uploaded resume"}`,
+      difficulty,
       questions: [],
     });
 

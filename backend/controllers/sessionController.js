@@ -3,7 +3,7 @@ const Question = require("../models/Question");
 
 const createSession = async (req, res) => {
   try {
-    const { role, experience, description } = req.body;
+    const { role, experience, description, difficulty } = req.body;
     if (!role || !experience) {
       return res.status(400).json({ message: "Role and experience are required" });
     }
@@ -18,6 +18,7 @@ const createSession = async (req, res) => {
       role,
       experience,
       description: description || "",
+      difficulty: difficulty || "Medium",
     });
     res.status(201).json(session);
   } catch (error) {

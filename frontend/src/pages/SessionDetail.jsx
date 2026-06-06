@@ -269,7 +269,7 @@ const SessionDetail = () => {
                   <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 12 }}>{session.description}</p>
                 )}
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[`${session?.experience} yrs experience`, `${allQ.length} Q&A`].map(tag => (
+                  {[`${session?.experience} yrs experience`, `${session?.difficulty || "Medium"} Difficulty`, `${allQ.length} Q&A`].map(tag => (
                     <span key={tag} style={{
                       background: "var(--tag-bg)", color: "var(--tag-text)",
                       padding: "4px 14px", borderRadius: "var(--radius-full)",

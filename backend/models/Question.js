@@ -1,14 +1,41 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../config/db");
 
-const questionSchema = new mongoose.Schema(
+const Question = sequelize.define(
+  "Question",
   {
-    session: { type: mongoose.Schema.Types.ObjectId, ref: "Session", required: true },
-    question: { type: String, required: true },
-    answer: { type: String, default: "" },
-    isPinned: { type: Boolean, default: false },
-    explanation: { type: String, default: "" },
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    sessionId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: "sessions", key: "id" },
+      onDelete: "CASCADE",
+    },
+    question: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    answer: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+    isPinned: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    explanation: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    tableName: "questions",
+  }
 );
 
-module.exports = mongoose.model("Question", questionSchema);
+module.exports = Question;

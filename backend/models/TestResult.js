@@ -1,28 +1,63 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../config/db");
 
-const testResultSchema = new mongoose.Schema(
+const TestResult = sequelize.define(
+  "TestResult",
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    session: { type: mongoose.Schema.Types.ObjectId, ref: "Session", required: true },
-    role: { type: String, required: true },
-    difficulty: { type: String, enum: ["easy", "medium", "hard"], default: "medium" },
-    totalQuestions: { type: Number, required: true },
-    correctCount: { type: Number, required: true },
-    percentage: { type: Number, required: true },
-    timeTaken: { type: Number, default: 0 }, // in seconds
-    timerEnabled: { type: Boolean, default: false },
-    results: [
-      {
-        questionId: String,
-        question: String,
-        correctAnswer: String,
-        selectedOption: String,
-        correctOption: String,
-        isCorrect: Boolean,
-      },
-    ],
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: "users", key: "id" },
+      onDelete: "CASCADE",
+    },
+    sessionId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: "sessions", key: "id" },
+      onDelete: "CASCADE",
+    },
+    role: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    difficulty: {
+      type: DataTypes.ENUM("easy", "medium", "hard"),
+      defaultValue: "medium",
+    },
+    totalQuestions: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    correctCount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    percentage: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+    },
+    timeTaken: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    timerEnabled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    results: {
+      type: DataTypes.JSON,
+      defaultValue: [],
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    tableName: "test_results",
+  }
 );
 
-module.exports = mongoose.model("TestResult", testResultSchema);
+module.exports = TestResult;

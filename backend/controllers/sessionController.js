@@ -14,7 +14,7 @@ const createSession = async (req, res) => {
     }
 
     const session = await Session.create({
-      user: req.user._id,
+      userId: req.user.id,
       role,
       experience,
       description: description || "",
@@ -28,10 +28,20 @@ const createSession = async (req, res) => {
 
 const getAllSessions = async (req, res) => {
   try {
-    const sessions = await Session.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .populate("questions");
-    res.json(sessions);
+    const sessions = await Session.findAll({
+      where: { userId: req.user.id },
+      order: [["createdAt", "DESC"]],
+    });
+    
+    // Fetch questions for each session
+    const sessionsWithQuestions = await Promise.all(
+      sessions.map(async (s) => {
+        const questions = await Question.findAll({ where: { sessionId: s.id } });
+        return { ...s.toJSON(), questions };
+      })
+    );
+    
+    res.json(sessionsWithQuestions);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -40,13 +50,19 @@ const getAllSessions = async (req, res) => {
 const getSessionById = async (req, res) => {
   try {
     const session = await Session.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    }).populate("questions");
+      where: {
+        id: req.params.id,
+        userId: req.user.id,
+      },
+    });
+    
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
-    res.json(session);
+    
+    const questions = await Question.findAll({ where: { sessionId: session.id } });
+    
+    res.json({ ...session.toJSON(), questions });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -55,14 +71,19 @@ const getSessionById = async (req, res) => {
 const deleteSession = async (req, res) => {
   try {
     const session = await Session.findOne({
-      _id: req.params.id,
-      user: req.user._id,
+      where: {
+        id: req.params.id,
+        userId: req.user.id,
+      },
     });
+    
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
-    await Question.deleteMany({ session: session._id });
-    await session.deleteOne();
+    
+    await Question.destroy({ where: { sessionId: session.id } });
+    await session.destroy();
+    
     res.json({ message: "Session deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error" });

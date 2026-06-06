@@ -1,15 +1,42 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../config/db");
 
-const sessionSchema = new mongoose.Schema(
+const Session = sequelize.define(
+  "Session",
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    role: { type: String, required: true, trim: true },
-    experience: { type: String, required: true },
-    description: { type: String, default: "" },
-    difficulty: { type: String, enum: ["Easy", "Medium", "Hard"], default: "Medium" },
-    questions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }],
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+    },
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: "users", key: "id" },
+      onDelete: "CASCADE",
+    },
+    role: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      trim: true,
+    },
+    experience: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    description: {
+      type: DataTypes.TEXT,
+      defaultValue: "",
+    },
+    difficulty: {
+      type: DataTypes.ENUM("Easy", "Medium", "Hard"),
+      defaultValue: "Medium",
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    tableName: "sessions",
+  }
 );
 
-module.exports = mongoose.model("Session", sessionSchema);
+module.exports = Session;

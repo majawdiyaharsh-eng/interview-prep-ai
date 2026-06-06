@@ -14,15 +14,15 @@ const signup = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "Email already registered" });
     }
     const user = await User.create({ name, email, password });
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
     res.status(201).json({
       token,
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email },
     });
   } catch (error) {
     res.status(500).json({ message: "Server error 1", error: error.message });
@@ -35,14 +35,14 @@ const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password required" });
     }
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email },
     });
   } catch (error) {
     res.status(500).json({ message: "Server error 2", error: error.message });
@@ -51,7 +51,9 @@ const login = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password");
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ["password"] },
+    });
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: "Server error 3" });
@@ -61,11 +63,11 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const { name, email } = req.body;
-    const user = await User.findById(req.user._id);
+    const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (email && email !== user.email) {
-      const existing = await User.findOne({ email });
+      const existing = await User.findOne({ where: { email } });
       if (existing) return res.status(400).json({ message: "Email already in use" });
       user.email = email;
     }
@@ -74,7 +76,7 @@ const updateProfile = async (req, res) => {
     await user.save();
     res.json({
       message: "Profile updated",
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email },
     });
   } catch (error) {
     res.status(500).json({ message: "Failed to update profile", error: error.message });
@@ -83,15 +85,14 @@ const updateProfile = async (req, res) => {
 
 const uploadProfilePhoto = async (req, res) => {
   try {
-    const { photo } = req.body; // base64 string
+    const { photo } = req.body;
     if (!photo) return res.status(400).json({ message: "Photo is required" });
 
-    // Limit size (~500KB in base64)
     if (photo.length > 700000) {
       return res.status(400).json({ message: "Photo too large. Max 500KB." });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     user.profilePhoto = photo;
@@ -104,7 +105,7 @@ const uploadProfilePhoto = async (req, res) => {
 
 const removeProfilePhoto = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
     user.profilePhoto = "";
     await user.save();
@@ -124,7 +125,7 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ message: "New password must be at least 6 characters" });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const isMatch = await user.comparePassword(currentPassword);
@@ -140,32 +141,36 @@ const changePassword = async (req, res) => {
 
 const getUserStats = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const sessions = await Session.find({ user: userId }).populate("questions");
+    const userId = req.user.id;
+    const sessions = await Session.findAll({ where: { userId } });
     const totalSessions = sessions.length;
     let totalQuestions = 0;
     let pinnedQuestions = 0;
     let explainedQuestions = 0;
     const roles = new Set();
 
-    sessions.forEach((s) => {
-      totalQuestions += s.questions?.length || 0;
+    for (const s of sessions) {
+      const questions = await Question.findAll({ where: { sessionId: s.id } });
+      totalQuestions += questions.length;
       roles.add(s.role);
-      s.questions?.forEach((q) => {
+      questions.forEach((q) => {
         if (q.isPinned) pinnedQuestions++;
         if (q.explanation && q.explanation.trim().length > 0) explainedQuestions++;
       });
-    });
+    }
 
-    // Get test history stats
-    const testResults = await TestResult.find({ user: userId }).sort({ createdAt: -1 });
+    const testResults = await TestResult.findAll({
+      where: { userId },
+      order: [["createdAt", "DESC"]],
+    });
     const totalTests = testResults.length;
     const avgScore = totalTests > 0
       ? Math.round(testResults.reduce((sum, r) => sum + r.percentage, 0) / totalTests)
       : 0;
 
-    // Get user creation date
-    const user = await User.findById(userId).select("createdAt profilePhoto");
+    const user = await User.findByPk(userId, {
+      attributes: ["createdAt", "profilePhoto"],
+    });
 
     res.json({
       totalSessions,
@@ -184,7 +189,6 @@ const getUserStats = async (req, res) => {
   }
 };
 
-// Save test result
 const saveTestResult = async (req, res) => {
   try {
     const { sessionId, role, difficulty, totalQuestions, correctCount, percentage, timeTaken, timerEnabled, results } = req.body;
@@ -193,8 +197,8 @@ const saveTestResult = async (req, res) => {
     }
 
     const testResult = await TestResult.create({
-      user: req.user._id,
-      session: sessionId,
+      userId: req.user.id,
+      sessionId,
       role,
       difficulty: difficulty || "medium",
       totalQuestions,
@@ -211,13 +215,14 @@ const saveTestResult = async (req, res) => {
   }
 };
 
-// Get test history
 const getTestHistory = async (req, res) => {
   try {
-    const testResults = await TestResult.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .select("-results"); // Don't send detailed results in list view
+    const testResults = await TestResult.findAll({
+      where: { userId: req.user.id },
+      order: [["createdAt", "DESC"]],
+      limit: 20,
+      attributes: { exclude: ["results"] },
+    });
 
     res.json(testResults);
   } catch (error) {
@@ -225,12 +230,13 @@ const getTestHistory = async (req, res) => {
   }
 };
 
-// Get single test result detail
 const getTestResultDetail = async (req, res) => {
   try {
     const result = await TestResult.findOne({
-      _id: req.params.id,
-      user: req.user._id,
+      where: {
+        id: req.params.id,
+        userId: req.user.id,
+      },
     });
     if (!result) return res.status(404).json({ message: "Test result not found" });
     res.json(result);
@@ -241,14 +247,14 @@ const getTestResultDetail = async (req, res) => {
 
 const deleteAccount = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const sessions = await Session.find({ user: userId });
+    const userId = req.user.id;
+    const sessions = await Session.findAll({ where: { userId } });
     for (const s of sessions) {
-      await Question.deleteMany({ session: s._id });
+      await Question.destroy({ where: { sessionId: s.id } });
     }
-    await Session.deleteMany({ user: userId });
-    await TestResult.deleteMany({ user: userId });
-    await User.findByIdAndDelete(userId);
+    await Session.destroy({ where: { userId } });
+    await TestResult.destroy({ where: { userId } });
+    await User.destroy({ where: { id: userId } });
     res.json({ message: "Account deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Failed to delete account", error: error.message });

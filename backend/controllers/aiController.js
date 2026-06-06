@@ -10,7 +10,9 @@ const generateQuestions = async (req, res) => {
     if (!role || !experience || !sessionId) {
       return res.status(400).json({ message: "role, experience, sessionId are required" });
     }
-    const session = await Session.findOne({ _id: sessionId, user: req.user._id });
+    const session = await Session.findOne({
+      where: { id: sessionId, userId: req.user.id },
+    });
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
@@ -30,15 +32,14 @@ const generateQuestions = async (req, res) => {
     const savedQuestions = await Promise.all(
       questionsData.map(async (q) => {
         const question = await Question.create({
-          session: sessionId,
+          sessionId,
           question: q.question,
           answer: q.answer,
         });
-        session.questions.push(question._id);
         return question;
       })
     );
-    await session.save();
+    
     res.status(201).json({ message: savedQuestions.length + " questions generated", questions: savedQuestions });
   } catch (error) {
     console.log("EXACT ERROR:", error.message);
@@ -49,11 +50,13 @@ const generateQuestions = async (req, res) => {
 const explainQuestion = async (req, res) => {
   try {
     const { questionId } = req.body;
-    const question = await Question.findById(questionId).populate("session");
+    const question = await Question.findByPk(questionId);
     if (!question) {
       return res.status(404).json({ message: "Question not found" });
     }
-    if (question.session.user.toString() !== req.user._id.toString()) {
+    
+    const session = await Session.findByPk(question.sessionId);
+    if (session.userId !== req.user.id) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -74,7 +77,6 @@ const explainQuestion = async (req, res) => {
   }
 };
 
-// Generate quiz (MCQ) options for each question in a session
 const generateQuiz = async (req, res) => {
   try {
     const { sessionId, numberOfQuestions } = req.body;
@@ -82,24 +84,26 @@ const generateQuiz = async (req, res) => {
       return res.status(400).json({ message: "sessionId is required" });
     }
 
-    const session = await Session.findOne({ _id: sessionId, user: req.user._id }).populate("questions");
+    const session = await Session.findOne({
+      where: { id: sessionId, userId: req.user.id },
+    });
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    if (!session.questions || session.questions.length === 0) {
+    const questions = await Question.findAll({ where: { sessionId } });
+    if (!questions || questions.length === 0) {
       return res.status(400).json({ message: "No questions in this session" });
     }
 
-    let selectedQuestions = session.questions;
-    // If numberOfQuestions is specified, randomly select that many
+    let selectedQuestions = questions;
     if (numberOfQuestions && numberOfQuestions < selectedQuestions.length) {
       const shuffled = [...selectedQuestions].sort(() => 0.5 - Math.random());
       selectedQuestions = shuffled.slice(0, numberOfQuestions);
     }
 
     const questionsForQuiz = selectedQuestions.map((q) => ({
-      questionId: q._id.toString(),
+      questionId: q.id.toString(),
       question: q.question,
       correctAnswer: q.answer,
     }));
@@ -127,7 +131,6 @@ Return format: [{"questionId": "id", "options": ["option A", "option B", "option
     const cleanedText = text.replace(/```json|```/g, "").trim();
     const quizData = JSON.parse(cleanedText);
 
-    // Merge question text back
     const enrichedQuiz = quizData.map((q) => {
       const original = questionsForQuiz.find((oq) => oq.questionId === q.questionId);
       return {
@@ -145,23 +148,25 @@ Return format: [{"questionId": "id", "options": ["option A", "option B", "option
   }
 };
 
-// Evaluate quiz answers (MCQ-based)
 const evaluateQuiz = async (req, res) => {
   try {
     const { sessionId, quizAnswers } = req.body;
-    // quizAnswers: [{ questionId, selectedIndex, correctIndex }]
     if (!sessionId || !quizAnswers || !Array.isArray(quizAnswers)) {
       return res.status(400).json({ message: "sessionId and quizAnswers array are required" });
     }
 
-    const session = await Session.findOne({ _id: sessionId, user: req.user._id }).populate("questions");
+    const session = await Session.findOne({
+      where: { id: sessionId, userId: req.user.id },
+    });
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
 
+    const questions = await Question.findAll({ where: { sessionId } });
+
     let correctCount = 0;
     const results = quizAnswers.map((qa) => {
-      const q = session.questions.find((qq) => qq._id.toString() === qa.questionId);
+      const q = questions.find((qq) => qq.id.toString() === qa.questionId);
       const isCorrect = qa.selectedIndex === qa.correctIndex;
       if (isCorrect) correctCount++;
       return {
@@ -194,19 +199,20 @@ const evaluateQuiz = async (req, res) => {
 const evaluateTest = async (req, res) => {
   try {
     const { sessionId, answers } = req.body;
-    // answers: [{ questionId, userAnswer }]
     if (!sessionId || !answers || !Array.isArray(answers)) {
       return res.status(400).json({ message: "sessionId and answers array are required" });
     }
 
-    const session = await Session.findOne({ _id: sessionId, user: req.user._id }).populate("questions");
+    const session = await Session.findOne({
+      where: { id: sessionId, userId: req.user.id },
+    });
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    // Build evaluation prompt
+    const questions = await Question.findAll({ where: { sessionId } });
     const questionsForEval = answers.map((a) => {
-      const q = session.questions.find((qq) => qq._id.toString() === a.questionId);
+      const q = questions.find((qq) => qq.id.toString() === a.questionId);
       return {
         questionId: a.questionId,
         question: q?.question || "",
@@ -229,12 +235,10 @@ ${JSON.stringify(questionsForEval, null, 2)}`;
     const cleanedText = text.replace(/```json|```/g, "").trim();
     const results = JSON.parse(cleanedText);
 
-    // Calculate overall score
     const totalScore = results.reduce((sum, r) => sum + (r.score || 0), 0);
     const maxScore = results.length * 10;
     const percentage = Math.round((totalScore / maxScore) * 100);
 
-    // Merge question text back into results
     const enrichedResults = results.map((r) => {
       const original = questionsForEval.find((q) => q.questionId === r.questionId);
       return {
@@ -258,9 +262,6 @@ ${JSON.stringify(questionsForEval, null, 2)}`;
   }
 };
 
-module.exports = { generateQuestions, explainQuestion, evaluateTest, generateQuiz, evaluateQuiz, generateFromResume };
-
-// Resume upload and question generation
 async function generateFromResume(req, res) {
   try {
     if (!req.file) {
@@ -274,7 +275,6 @@ async function generateFromResume(req, res) {
     const pdfData = await pdfParse(dataBuffer);
     const resumeText = pdfData.text;
 
-    // Clean up uploaded file
     fs.unlinkSync(req.file.path);
 
     if (!resumeText || resumeText.trim().length < 50) {
@@ -284,7 +284,6 @@ async function generateFromResume(req, res) {
     const { role, numberOfQuestions = 10, difficulty = "Medium" } = req.body;
     const targetRole = role || "Software Developer";
 
-    // Step 1: Extract skills and profile from resume
     const extractPrompt = `Analyze this resume and extract: the candidate's name, top skills, experience level (years), and key technologies. Return ONLY valid JSON with no markdown:
 {"name": "...", "skills": ["skill1", "skill2"], "experience": "X years", "technologies": ["tech1", "tech2"], "summary": "brief 1-line summary"}
 
@@ -304,7 +303,6 @@ ${resumeText.substring(0, 3000)}`;
       profileData = { name: "Candidate", skills: [], experience: "Unknown", technologies: [], summary: "Resume analyzed" };
     }
 
-    // Step 2: Generate interview questions based on resume + role
     const questionPrompt = `Based on this candidate's resume, generate ${numberOfQuestions} targeted ${difficulty}-level interview questions for a ${targetRole} position.
 
 Candidate Profile:
@@ -328,28 +326,24 @@ Return ONLY a valid JSON array with no markdown: [{"question": "...", "answer": 
     const questionText = questionCompletion.choices[0].message.content.replace(/```json|```/g, "").trim();
     const questionsData = JSON.parse(questionText);
 
-    // Step 3: Create a session and save questions
     const session = await Session.create({
-      user: req.user._id,
+      userId: req.user.id,
       role: targetRole,
       experience: profileData.experience ? parseInt(profileData.experience) || 0 : 0,
       description: `Resume-based: ${profileData.summary || "Questions generated from uploaded resume"}`,
       difficulty,
-      questions: [],
     });
 
     const savedQuestions = await Promise.all(
       questionsData.map(async (q) => {
         const question = await Question.create({
-          session: session._id,
+          sessionId: session.id,
           question: q.question,
           answer: q.answer,
         });
-        session.questions.push(question._id);
         return question;
       })
     );
-    await session.save();
 
     res.status(201).json({
       message: `${savedQuestions.length} questions generated from your resume!`,
@@ -358,7 +352,6 @@ Return ONLY a valid JSON array with no markdown: [{"question": "...", "answer": 
       questions: savedQuestions,
     });
   } catch (error) {
-    // Clean up file on error
     if (req.file && require("fs").existsSync(req.file.path)) {
       require("fs").unlinkSync(req.file.path);
     }
@@ -366,3 +359,5 @@ Return ONLY a valid JSON array with no markdown: [{"question": "...", "answer": 
     res.status(500).json({ message: "Failed to process resume", error: error.message });
   }
 }
+
+module.exports = { generateQuestions, explainQuestion, evaluateTest, generateQuiz, evaluateQuiz, generateFromResume };

@@ -1,10 +1,16 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const connectDB = require("./config/db");
 
+// Load environment variables FIRST
 dotenv.config();
+
+const { connectDB, sequelize } = require("./config/db");
+
 connectDB();
+
+// Sync database (create tables if they don't exist)
+sequelize.sync({ alter: true }).catch(err => console.error("Sync error:", err));
 
 const app = express();
 

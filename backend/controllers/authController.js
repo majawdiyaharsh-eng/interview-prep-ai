@@ -25,7 +25,8 @@ const signup = async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email },
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error 1", error: error.message });
+    console.error("❌ SIGNUP ERROR:", error.message, error.stack);
+    res.status(500).json({ message: "Signup failed: " + error.message, error: error.message });
   }
 };
 

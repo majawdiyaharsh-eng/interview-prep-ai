@@ -7,11 +7,6 @@ dotenv.config();
 
 const { connectDB, sequelize } = require("./config/db");
 
-connectDB();
-
-// Sync database (create tables if they don't exist)
-sequelize.sync({ alter: true }).catch(err => console.error("Sync error:", err));
-
 const app = express();
 
 app.use(cors({
@@ -36,4 +31,18 @@ app.use("/api/ai", require("./routes/aiRoutes"));
 app.get("/", (req, res) => res.send("Interview Prep API Running ✅"));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Connect DB and sync tables BEFORE starting server
+const startServer = async () => {
+  try {
+    await connectDB();
+    await sequelize.sync({ alter: true });
+    console.log("✅ Database tables synced successfully!");
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err) {
+    console.error("❌ Failed to start server:", err);
+    process.exit(1);
+  }
+};
+
+startServer();

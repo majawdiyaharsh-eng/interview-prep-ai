@@ -64,7 +64,7 @@ const Dashboard = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {

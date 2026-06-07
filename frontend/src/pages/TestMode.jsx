@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -37,7 +37,7 @@ const TestMode = () => {
       try {
         const res = await axiosInstance.get(`/session/${id}`);
         setSession(res.data);
-      } catch (err) {
+      } catch {
         toast.error("Failed to load session");
       } finally {
         setLoading(false);
@@ -51,7 +51,7 @@ const TestMode = () => {
     if (session?.questions?.length && quizQuestionCount === null) {
       setQuizQuestionCount(Math.min(session.questions.length, 10));
     }
-  }, [session]);
+  }, [session, quizQuestionCount]);
 
   // Timer countdown
   useEffect(() => {
@@ -69,7 +69,7 @@ const TestMode = () => {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [isTestStarted, timeLeft, testOptions.timerEnabled, testResult, submitting]);
+  }, [isTestStarted, timeLeft, testOptions.timerEnabled, testResult, submitting, handleSubmitQuiz]);
 
   const startTest = async () => {
     if (!session?.questions?.length) {
@@ -104,7 +104,7 @@ const TestMode = () => {
     setSelectedAnswers({ ...selectedAnswers, [questionId]: optionIndex });
   };
 
-  const handleSubmitQuiz = async () => {
+  const handleSubmitQuiz = useCallback(async () => {
     setSubmitting(true);
     const quizAnswers = quizQuestions.map((q) => ({
       questionId: q.questionId,
@@ -145,7 +145,7 @@ const TestMode = () => {
       toast.error("Failed to evaluate quiz.");
       setSubmitting(false);
     }
-  };
+  }, [id, quizQuestions, selectedAnswers, quizStartTime, session?.role, difficulty, testOptions.timerEnabled]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -669,7 +669,7 @@ const TestMode = () => {
               key={q.questionId}
               onClick={() => setCurrentQuestionIndex(i)}
               style={{
-                width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer",
+                width: 32, height: 32, borderRadius: "50%", cursor: "pointer",
                 fontSize: 11, fontWeight: 700, fontFamily: "inherit",
                 transition: "all 0.2s",
                 background: isCurrent

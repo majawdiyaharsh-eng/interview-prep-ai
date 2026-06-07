@@ -208,7 +208,7 @@ const Profile = () => {
       await axiosInstance.delete("/auth/profile-photo");
       setProfilePhoto("");
       toast.success("Photo removed");
-    } catch (err) {
+    } catch {
       toast.error("Failed to remove photo");
     }
   };

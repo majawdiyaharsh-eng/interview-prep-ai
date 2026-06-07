@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -28,7 +28,7 @@ const QuestionSkeleton = () => (
 const SessionDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -64,7 +64,7 @@ const SessionDetail = () => {
     localStorage.setItem("theme", n ? "dark" : "light");
   };
 
-  const fetchSession = async () => {
+  const fetchSession = useCallback(async () => {
     try {
       const res = await axiosInstance.get(`/session/${id}`);
       setSession(res.data);
@@ -73,9 +73,9 @@ const SessionDetail = () => {
       toast.error("Failed to load session");
     }
     finally { setLoading(false); }
-  };
+  }, [id]);
 
-  useEffect(() => { fetchSession(); }, [id]);
+  useEffect(() => { fetchSession(); }, [id, fetchSession]);
 
   const handleGenerate = async () => {
     if (isGeneratingRef.current) return;

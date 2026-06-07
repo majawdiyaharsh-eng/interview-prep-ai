@@ -18,11 +18,6 @@ const fadeUp = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
 };
 
-const scaleIn = {
-  initial: { opacity: 0, scale: 0.95 },
-  animate: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
-};
-
 /* ---- Feature data ---- */
 const features = [
   { icon: "🎯", title: "Tailored Just for You", desc: "Get interview questions and model answers based on your role, experience, and specific focus areas — no generic practice here.", color: "#d4940a", gradient: "linear-gradient(135deg, #f5d06b, #d4940a)" },
@@ -32,27 +27,12 @@ const features = [
   { icon: "💾", title: "Save, Organize, and Revisit", desc: "Easily save your interview sets, organize them neatly in your dashboard, and pick up right where you left off.", color: "#d4a020", gradient: "linear-gradient(135deg, #f5d878, #d4a020)" },
 ];
 
-/* ---- Feature Highlights ---- */
-const highlights = [
-  { icon: "🤖", label: "AI-Powered", desc: "Smart Questions", num: "10K+" },
-  { icon: "🎯", label: "Role-Specific", desc: "Tailored For You", num: "50+" },
-  { icon: "⚡", label: "Real-Time", desc: "Instant Explanations", num: "∞" },
-  { icon: "🆓", label: "100% Free", desc: "No Hidden Costs", num: "$0" },
-];
-
 /* ---- How It Works ---- */
 const steps = [
   { num: "01", title: "Choose Your Role", desc: "Select your job title, experience level, and key topics you want to focus on.", icon: "👤" },
   { num: "02", title: "Get AI Questions", desc: "Receive tailored interview questions with model answers generated instantly.", icon: "🤖" },
   { num: "03", title: "Test & Learn", desc: "Practice with quiz mode, expand answers, and deep-dive into explanations.", icon: "📖" },
   { num: "04", title: "Ace Your Interview", desc: "Walk in confident with thorough preparation. Track progress across sessions.", icon: "🏆" },
-];
-
-/* ---- Testimonials ---- */
-const testimonials = [
-  { name: "Priya Sharma", role: "Frontend Developer at Tech Corp", text: "This tool completely transformed my interview prep. The AI-generated questions were incredibly relevant!", avatar: "P", rating: 5 },
-  { name: "Alex Chen", role: "Full Stack Engineer at StartUp.io", text: "The deep explanations helped me truly understand concepts, not just memorize. Landed my dream job!", avatar: "A", rating: 5 },
-  { name: "Sarah Williams", role: "React Developer at FinTech Co", text: "Love the ability to save sessions and revisit them. The quiz mode is a game changer for preparation.", avatar: "S", rating: 5 },
 ];
 
 /* ---- Intersection Observer hook ---- */
@@ -162,7 +142,6 @@ const Landing = () => {
   const [modal, setModal] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const [featuresRef, featuresInView] = useInView(0.15);
-  const [statsRef, statsInView] = useInView(0.3);
   const [howRef, howInView] = useInView(0.15);
   const [activeFooterLink, setActiveFooterLink] = useState(null);
 
@@ -818,7 +797,7 @@ const Landing = () => {
                   style={{
                     display: "flex", alignItems: "center", gap: 6,
                     fontSize: 13, fontWeight: 600, cursor: "pointer",
-                    fontFamily: "inherit", border: "none",
+                    fontFamily: "inherit",
                     padding: "8px 16px", borderRadius: "var(--radius-full)",
                     transition: "all 0.25s ease",
                     background: activeFooterLink === link.name

@@ -15,7 +15,11 @@ sequelize.sync({ alter: true }).catch(err => console.error("Sync error:", err));
 const app = express();
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: [
+    "http://localhost:5173",
+    "https://interview-prep-ai-git-main-majawdiyaharsh-engs-projects.vercel.app",
+    "https://interview-prep-7sow9ez7x-majawdiyaharsh-engs-projects.vercel.app"
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]

@@ -28,7 +28,6 @@ const QuestionSkeleton = () => (
 const SessionDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -37,7 +36,7 @@ const SessionDetail = () => {
   const [expandedQ, setExpandedQ] = useState(null);
   const [explainPanel, setExplainPanel] = useState(null);
   const [explaining, setExplaining] = useState(null);
-  const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
+  const { user, dark, toggleTheme } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreProgress, setLoadMoreProgress] = useState(0);
@@ -53,16 +52,6 @@ const SessionDetail = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-  }, [dark]);
-
-  const toggleTheme = () => {
-    const n = !dark;
-    setDark(n);
-    localStorage.setItem("theme", n ? "dark" : "light");
-  };
 
   const fetchSession = useCallback(async () => {
     try {
@@ -111,13 +100,13 @@ const SessionDetail = () => {
 
   const handleExplain = async (q) => {
     if (q.explanation) { setExplainPanel(q); return; }
-    setExplaining(q._id);
+    setExplaining(q.id);
     try {
-      const res = await axiosInstance.post("/ai/explain", { questionId: q._id });
+      const res = await axiosInstance.post("/ai/explain", { questionId: q.id });
       const updated = res.data.question;
       setSession(prev => ({
         ...prev,
-        questions: prev.questions.map(qq => qq._id === q._id ? updated : qq),
+        questions: prev.questions.map(qq => qq.id === q.id ? updated : qq),
       }));
       setExplainPanel(updated);
       toast.success("Explanation ready!");
@@ -134,9 +123,9 @@ const SessionDetail = () => {
       const res = await axiosInstance.patch("/question/pin", { questionId });
       setSession(prev => ({
         ...prev,
-        questions: prev.questions.map(q => q._id === questionId ? res.data : q),
+        questions: prev.questions.map(q => q.id === questionId ? res.data : q),
       }));
-      if (explainPanel?._id === questionId) setExplainPanel(res.data);
+      if (explainPanel?.id === questionId) setExplainPanel(res.data);
       toast.success(res.data.isPinned ? "Question pinned!" : "Question unpinned");
     } catch (err) {
       console.error(err);
@@ -477,7 +466,7 @@ const SessionDetail = () => {
               }}>
                 {allQ.map((q, index) => (
                   <motion.div
-                    key={q._id}
+                    key={q.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: index * 0.03 }}
@@ -485,7 +474,7 @@ const SessionDetail = () => {
                   >
                     {/* Question Row */}
                     <div
-                      onClick={() => setExpandedQ(expandedQ === q._id ? null : q._id)}
+                      onClick={() => setExpandedQ(expandedQ === q.id ? null : q.id)}
                       style={{
                         display: "flex", justifyContent: "space-between",
                         alignItems: "center", padding: "16px 24px", cursor: "pointer",
@@ -499,11 +488,11 @@ const SessionDetail = () => {
                         {/* Question number badge */}
                         <div style={{
                           width: 30, height: 30, borderRadius: "50%",
-                          background: expandedQ === q._id ? "var(--accent)" : "var(--hover-bg)",
-                          color: expandedQ === q._id ? "#fff" : "var(--text-muted)",
+                          background: expandedQ === q.id ? "var(--accent)" : "var(--hover-bg)",
+                          color: expandedQ === q.id ? "#fff" : "var(--text-muted)",
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: 11, fontWeight: 700, flexShrink: 0,
-                          border: `1.5px solid ${expandedQ === q._id ? "var(--accent)" : "var(--border)"}`,
+                          border: `1.5px solid ${expandedQ === q.id ? "var(--accent)" : "var(--border)"}`,
                           transition: "all var(--transition-fast)",
                         }}>
                           Q{index + 1}
@@ -515,16 +504,16 @@ const SessionDetail = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={e => { e.stopPropagation(); handleExplain(q); }}
-                          disabled={explaining === q._id}
+                          disabled={explaining === q.id}
                           style={{
                             background: "linear-gradient(135deg, #f0a500, #e09000)",
                             color: "#fff", border: "none", padding: "5px 14px",
                             borderRadius: "var(--radius-full)", fontSize: 12, fontWeight: 600,
                             cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-                            opacity: explaining === q._id ? 0.7 : 1,
+                            opacity: explaining === q.id ? 0.7 : 1,
                           }}
                         >
-                          {explaining === q._id ? (
+                          {explaining === q.id ? (
                             <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                               <span style={{ animation: "spin 1s linear infinite", display: "inline-block", fontSize: 10 }}>⚡</span>
                               Loading
@@ -534,7 +523,7 @@ const SessionDetail = () => {
                         <motion.button
                           whileHover={{ scale: 1.2 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={e => handlePin(q._id, e)}
+                          onClick={e => handlePin(q.id, e)}
                           style={{
                             background: "none", border: "none", cursor: "pointer",
                             fontSize: 15, opacity: q.isPinned ? 1 : 0.25,
@@ -543,7 +532,7 @@ const SessionDetail = () => {
                           }}
                         >📌</motion.button>
                         <motion.span
-                          animate={{ rotate: expandedQ === q._id ? 180 : 0 }}
+                          animate={{ rotate: expandedQ === q.id ? 180 : 0 }}
                           transition={{ duration: 0.2 }}
                           style={{ color: "var(--text-muted)", fontSize: 14, display: "inline-block" }}
                         >▾</motion.span>
@@ -552,7 +541,7 @@ const SessionDetail = () => {
 
                     {/* Expanded Answer */}
                     <AnimatePresence>
-                      {expandedQ === q._id && (
+                      {expandedQ === q.id && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
@@ -765,7 +754,7 @@ const SessionDetail = () => {
             <motion.button
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.98 }}
-              onClick={e => handlePin(explainPanel._id, e)}
+              onClick={e => handlePin(explainPanel.id, e)}
               style={{
                 width: "100%", marginTop: 20,
                 background: explainPanel.isPinned ? "var(--accent-light)" : "var(--hover-bg)",

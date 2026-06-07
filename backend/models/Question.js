@@ -31,6 +31,10 @@ const Question = sequelize.define(
       type: DataTypes.TEXT,
       defaultValue: "",
     },
+    isRead: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     timestamps: true,

@@ -7,6 +7,9 @@ dotenv.config();
 
 const { connectDB, sequelize } = require("./config/db");
 
+// Import models to register associations (must be after db config)
+require("./models");
+
 const app = express();
 
 app.use(cors({
@@ -21,7 +24,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/session", require("./routes/sessionRoutes"));

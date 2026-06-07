@@ -98,9 +98,7 @@ const ScoreBadge = ({ percentage }) => {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, logout, updateUser } = useAuth();
-  const fileInputRef = useRef(null);
-  const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
+  const { user, logout, updateUser, dark, toggleTheme } = useAuth();
 
   // Profile edit state
   const [editing, setEditing] = useState(false);
@@ -133,15 +131,7 @@ const Profile = () => {
   const [deleteText, setDeleteText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-  }, [dark]);
-
-  const toggleTheme = () => {
-    const n = !dark;
-    setDark(n);
-    localStorage.setItem("theme", n ? "dark" : "light");
-  };
+  const fileInputRef = useRef(null);
 
   // Fetch stats & profile
   useEffect(() => {
@@ -626,7 +616,7 @@ const Profile = () => {
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {testHistory.map((test, i) => (
                 <motion.div
-                  key={test._id}
+                  key={test.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
@@ -644,8 +634,8 @@ const Profile = () => {
                       <span style={{
                         padding: "2px 8px", borderRadius: "var(--radius-full)",
                         fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                        background: test.difficulty === "easy" ? "rgba(34,197,94,0.1)" : test.difficulty === "hard" ? "rgba(239,68,68,0.1)" : "rgba(240,165,0,0.1)",
-                        color: test.difficulty === "easy" ? "#22c55e" : test.difficulty === "hard" ? "#ef4444" : "#f0a500",
+                        background: test.difficulty === "Easy" ? "rgba(34,197,94,0.1)" : test.difficulty === "Hard" ? "rgba(239,68,68,0.1)" : "rgba(240,165,0,0.1)",
+                        color: test.difficulty === "Easy" ? "#22c55e" : test.difficulty === "Hard" ? "#ef4444" : "#f0a500",
                       }}>{test.difficulty}</span>
                     </div>
                     <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text-muted)" }}>

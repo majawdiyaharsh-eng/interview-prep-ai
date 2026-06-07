@@ -27,7 +27,12 @@ const generateQuestions = async (req, res) => {
 
     const text = completion.choices[0].message.content;
     const cleanedText = text.replace(/```json|```/g, "").trim();
-    const questionsData = JSON.parse(cleanedText);
+    let questionsData;
+    try {
+      questionsData = JSON.parse(cleanedText);
+    } catch {
+      return res.status(500).json({ message: "AI returned an invalid response. Please try again." });
+    }
 
     const savedQuestions = await Promise.all(
       questionsData.map(async (q) => {
@@ -129,7 +134,12 @@ Return format: [{"questionId": "id", "options": ["option A", "option B", "option
 
     const text = completion.choices[0].message.content;
     const cleanedText = text.replace(/```json|```/g, "").trim();
-    const quizData = JSON.parse(cleanedText);
+    let quizData;
+    try {
+      quizData = JSON.parse(cleanedText);
+    } catch {
+      return res.status(500).json({ message: "AI returned an invalid quiz response. Please try again." });
+    }
 
     const enrichedQuiz = quizData.map((q) => {
       const original = questionsForQuiz.find((oq) => oq.questionId === q.questionId);
@@ -233,7 +243,12 @@ ${JSON.stringify(questionsForEval, null, 2)}`;
 
     const text = completion.choices[0].message.content;
     const cleanedText = text.replace(/```json|```/g, "").trim();
-    const results = JSON.parse(cleanedText);
+    let results;
+    try {
+      results = JSON.parse(cleanedText);
+    } catch {
+      return res.status(500).json({ message: "AI returned an invalid evaluation. Please try again." });
+    }
 
     const totalScore = results.reduce((sum, r) => sum + (r.score || 0), 0);
     const maxScore = results.length * 10;

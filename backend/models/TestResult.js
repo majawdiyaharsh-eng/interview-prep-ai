@@ -26,8 +26,8 @@ const TestResult = sequelize.define(
       allowNull: false,
     },
     difficulty: {
-      type: DataTypes.ENUM("easy", "medium", "hard"),
-      defaultValue: "medium",
+      type: DataTypes.ENUM("Easy", "Medium", "Hard"),
+      defaultValue: "Medium",
     },
     totalQuestions: {
       type: DataTypes.INTEGER,

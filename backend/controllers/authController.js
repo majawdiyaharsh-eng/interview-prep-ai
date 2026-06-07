@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Session = require("../models/Session");
 const Question = require("../models/Question");
 const TestResult = require("../models/TestResult");
+const { Op } = require("sequelize");
 const jwt = require("jsonwebtoken");
 
 const generateToken = (id) =>
@@ -89,7 +90,7 @@ const uploadProfilePhoto = async (req, res) => {
     const { photo } = req.body;
     if (!photo) return res.status(400).json({ message: "Photo is required" });
 
-    if (photo.length > 700000) {
+    if (photo.length > 667000) {
       return res.status(400).json({ message: "Photo too large. Max 500KB." });
     }
 
@@ -145,20 +146,22 @@ const getUserStats = async (req, res) => {
     const userId = req.user.id;
     const sessions = await Session.findAll({ where: { userId } });
     const totalSessions = sessions.length;
-    let totalQuestions = 0;
     let pinnedQuestions = 0;
     let explainedQuestions = 0;
     const roles = new Set();
 
-    for (const s of sessions) {
-      const questions = await Question.findAll({ where: { sessionId: s.id } });
-      totalQuestions += questions.length;
-      roles.add(s.role);
-      questions.forEach((q) => {
-        if (q.isPinned) pinnedQuestions++;
-        if (q.explanation && q.explanation.trim().length > 0) explainedQuestions++;
-      });
-    }
+    const sessionIds = sessions.map(s => s.id);
+    sessions.forEach(s => roles.add(s.role));
+
+    const allQuestions = sessionIds.length > 0
+      ? await Question.findAll({ where: { sessionId: { [Op.in]: sessionIds } } })
+      : [];
+    const totalQuestions = allQuestions.length;
+
+    allQuestions.forEach((q) => {
+      if (q.isPinned) pinnedQuestions++;
+      if (q.explanation && q.explanation.trim().length > 0) explainedQuestions++;
+    });
 
     const testResults = await TestResult.findAll({
       where: { userId },

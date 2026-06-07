@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -63,21 +63,10 @@ const Dashboard = () => {
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
-  const { user } = useAuth();
+  const { user, dark, toggleTheme } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-  }, [dark]);
-
-  const toggleTheme = () => {
-    const n = !dark;
-    setDark(n);
-    localStorage.setItem("theme", n ? "dark" : "light");
-  };
-
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/session/all");
       setSessions(res.data);
@@ -86,9 +75,9 @@ const Dashboard = () => {
       toast.error("Failed to load sessions");
     }
     finally { setLoading(false); }
-  };
+  }, []);
 
-  useEffect(() => { fetchSessions(); }, []);
+  useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -104,7 +93,7 @@ const Dashboard = () => {
       setShowModal(false);
       setRole(""); setExperience(""); setDescription(""); setDifficulty("Medium");
       toast.success("Session created successfully!");
-      navigate(`/session/${res.data._id}`);
+      navigate(`/session/${res.data.id}`);
     } catch (err) {
       console.error(err);
       toast.error("Failed to create session");
@@ -123,7 +112,7 @@ const Dashboard = () => {
               toast.dismiss(t.id);
               try {
                 await axiosInstance.delete(`/session/${id}`);
-                setSessions(sessions.filter(s => s._id !== id));
+                setSessions(prev => prev.filter(s => s.id !== id));
                 toast.success("Session deleted");
               } catch { toast.error("Delete failed"); }
             }}
@@ -344,14 +333,14 @@ const Dashboard = () => {
                 const color = cardColors[i % cardColors.length];
                 return (
                   <motion.div
-                    key={session._id}
+                    key={session.id}
                     layout
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.35, delay: i * 0.04 }}
                     whileHover={{ y: -4, boxShadow: "var(--shadow-md)" }}
-                    onClick={() => navigate(`/session/${session._id}`)}
+                    onClick={() => navigate(`/session/${session.id}`)}
                     style={{
                       background: color.bg, border: `1px solid ${color.border}`,
                       borderRadius: "var(--radius-lg)", padding: 24, cursor: "pointer",
@@ -362,7 +351,7 @@ const Dashboard = () => {
                     <motion.button
                       initial={{ opacity: 0 }}
                       whileHover={{ scale: 1.1, background: "rgba(239,68,68,0.15)" }}
-                      onClick={e => handleDelete(session._id, e)}
+                      onClick={e => handleDelete(session.id, e)}
                       style={{
                         position: "absolute", top: 12, right: 12,
                         background: "rgba(239,68,68,0.08)", border: "none",

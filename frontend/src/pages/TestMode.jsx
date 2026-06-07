@@ -18,7 +18,7 @@ const TestMode = () => {
     durationMinutes: 15,
   });
   const [quizQuestionCount, setQuizQuestionCount] = useState(null);
-  const [difficulty, setDifficulty] = useState("medium");
+  const [difficulty, setDifficulty] = useState("Medium");
   const [quizStartTime, setQuizStartTime] = useState(null);
 
   // Quiz State
@@ -52,6 +52,49 @@ const TestMode = () => {
       setQuizQuestionCount(Math.min(session.questions.length, 10));
     }
   }, [session, quizQuestionCount]);
+
+  const handleSubmitQuiz = useCallback(async () => {
+    setSubmitting(true);
+    const quizAnswers = quizQuestions.map((q) => ({
+      questionId: q.questionId,
+      selectedIndex: selectedAnswers[q.questionId] ?? -1,
+      correctIndex: q.correctIndex,
+      selectedOption: selectedAnswers[q.questionId] !== undefined ? q.options[selectedAnswers[q.questionId]] : "Not answered",
+      correctOption: q.options[q.correctIndex],
+    }));
+
+    try {
+      const res = await axiosInstance.post("/ai/evaluate-quiz", {
+        sessionId: id,
+        quizAnswers,
+      });
+      setTestResult(res.data);
+
+      // Save test result to history
+      const timeTaken = quizStartTime ? Math.round((Date.now() - quizStartTime) / 1000) : 0;
+      try {
+        await axiosInstance.post("/auth/test-result", {
+          sessionId: id,
+          role: session?.role || "Unknown",
+          difficulty,
+          totalQuestions: res.data.totalQuestions,
+          correctCount: res.data.correctCount,
+          percentage: res.data.percentage,
+          timeTaken,
+          timerEnabled: testOptions.timerEnabled,
+          results: res.data.results,
+        });
+      } catch (saveErr) {
+        console.error("Failed to save test result:", saveErr);
+      }
+
+      toast.success("Quiz completed!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to evaluate quiz.");
+      setSubmitting(false);
+    }
+  }, [id, quizQuestions, selectedAnswers, quizStartTime, session?.role, difficulty, testOptions.timerEnabled]);
 
   // Timer countdown
   useEffect(() => {
@@ -103,49 +146,6 @@ const TestMode = () => {
     if (testResult || submitting) return;
     setSelectedAnswers({ ...selectedAnswers, [questionId]: optionIndex });
   };
-
-  const handleSubmitQuiz = useCallback(async () => {
-    setSubmitting(true);
-    const quizAnswers = quizQuestions.map((q) => ({
-      questionId: q.questionId,
-      selectedIndex: selectedAnswers[q.questionId] ?? -1,
-      correctIndex: q.correctIndex,
-      selectedOption: selectedAnswers[q.questionId] !== undefined ? q.options[selectedAnswers[q.questionId]] : "Not answered",
-      correctOption: q.options[q.correctIndex],
-    }));
-
-    try {
-      const res = await axiosInstance.post("/ai/evaluate-quiz", {
-        sessionId: id,
-        quizAnswers,
-      });
-      setTestResult(res.data);
-
-      // Save test result to history
-      const timeTaken = quizStartTime ? Math.round((Date.now() - quizStartTime) / 1000) : 0;
-      try {
-        await axiosInstance.post("/auth/test-result", {
-          sessionId: id,
-          role: session?.role || "Unknown",
-          difficulty,
-          totalQuestions: res.data.totalQuestions,
-          correctCount: res.data.correctCount,
-          percentage: res.data.percentage,
-          timeTaken,
-          timerEnabled: testOptions.timerEnabled,
-          results: res.data.results,
-        });
-      } catch (saveErr) {
-        console.error("Failed to save test result:", saveErr);
-      }
-
-      toast.success("Quiz completed!");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to evaluate quiz.");
-      setSubmitting(false);
-    }
-  }, [id, quizQuestions, selectedAnswers, quizStartTime, session?.role, difficulty, testOptions.timerEnabled]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -208,7 +208,7 @@ const TestMode = () => {
           }}>
             <span style={{ fontWeight: 600, fontSize: 13, display: "block", marginBottom: 10 }}>🎯 Difficulty Level</span>
             <div style={{ display: "flex", gap: 8 }}>
-              {["easy", "medium", "hard"].map(d => (
+              {["Easy", "Medium", "Hard"].map(d => (
                 <motion.button
                   key={d}
                   whileHover={{ y: -1 }}
@@ -218,20 +218,20 @@ const TestMode = () => {
                     flex: 1, padding: "10px 0", borderRadius: "var(--radius-md)",
                     border: difficulty === d ? "2px solid" : "1px solid var(--border)",
                     borderColor: difficulty === d
-                      ? d === "easy" ? "#22c55e" : d === "medium" ? "#f0a500" : "#ef4444"
+                      ? d === "Easy" ? "#22c55e" : d === "Medium" ? "#f0a500" : "#ef4444"
                       : "var(--border)",
                     background: difficulty === d
-                      ? d === "easy" ? "rgba(34,197,94,0.08)" : d === "medium" ? "rgba(240,165,0,0.08)" : "rgba(239,68,68,0.08)"
+                      ? d === "Easy" ? "rgba(34,197,94,0.08)" : d === "Medium" ? "rgba(240,165,0,0.08)" : "rgba(239,68,68,0.08)"
                       : "var(--bg-card)",
                     color: difficulty === d
-                      ? d === "easy" ? "#22c55e" : d === "medium" ? "#f0a500" : "#ef4444"
+                      ? d === "Easy" ? "#22c55e" : d === "Medium" ? "#f0a500" : "#ef4444"
                       : "var(--text-muted)",
                     fontSize: 13, fontWeight: 700, cursor: "pointer",
                     fontFamily: "inherit", textTransform: "capitalize",
                     transition: "all 0.2s",
                   }}
                 >
-                  {d === "easy" ? "🟢" : d === "medium" ? "🟡" : "🔴"} {d.charAt(0).toUpperCase() + d.slice(1)}
+                  {d === "Easy" ? "🟢" : d === "Medium" ? "🟡" : "🔴"} {d}
                 </motion.button>
               ))}
             </div>

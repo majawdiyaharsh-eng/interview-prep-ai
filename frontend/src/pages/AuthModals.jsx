@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../utils/axiosInstance";
 import { useAuth } from "../context/AuthContext";
@@ -118,6 +119,7 @@ export const LoginModal = ({ onClose, onSwitchToSignup }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -129,7 +131,7 @@ export const LoginModal = ({ onClose, onSwitchToSignup }) => {
       setSuccess(true);
       setTimeout(() => {
         onClose();
-        window.location.href = "/dashboard";
+        navigate("/dashboard");
       }, 800);
     } catch (err) {
       setError(err.response?.data?.message || "Invalid credentials");
@@ -306,6 +308,7 @@ export const SignupModal = ({ onClose, onSwitchToLogin }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -317,7 +320,7 @@ export const SignupModal = ({ onClose, onSwitchToLogin }) => {
       setSuccess(true);
       setTimeout(() => {
         onClose();
-        window.location.href = "/dashboard";
+        navigate("/dashboard");
       }, 800);
     } catch (err) {
       setError(err.response?.data?.message || "Signup failed");

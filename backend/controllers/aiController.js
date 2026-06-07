@@ -101,10 +101,10 @@ const generateQuiz = async (req, res) => {
       return res.status(400).json({ message: "No questions in this session" });
     }
 
-    let selectedQuestions = questions;
+    // Always shuffle questions so quiz order is randomized
+    let selectedQuestions = [...questions].sort(() => 0.5 - Math.random());
     if (numberOfQuestions && numberOfQuestions < selectedQuestions.length) {
-      const shuffled = [...selectedQuestions].sort(() => 0.5 - Math.random());
-      selectedQuestions = shuffled.slice(0, numberOfQuestions);
+      selectedQuestions = selectedQuestions.slice(0, numberOfQuestions);
     }
 
     const questionsForQuiz = selectedQuestions.map((q) => ({

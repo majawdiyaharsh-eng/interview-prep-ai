@@ -17,6 +17,7 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:5173",
+    "https://interview-prep-ai-web.vercel.app",
     "https://interview-prep-ai-git-main-majawdiyaharsh-engs-projects.vercel.app",
     "https://interview-prep-7sow9ez7x-majawdiyaharsh-engs-projects.vercel.app"
   ],

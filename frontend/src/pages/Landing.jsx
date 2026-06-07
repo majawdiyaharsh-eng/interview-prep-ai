@@ -198,9 +198,8 @@ const Landing = () => {
     >
       {/* ===== Navbar ===== */}
       <nav
-        className="glass"
+        className="glass nav-container"
         style={{
-          padding: "0 60px",
           height: 68,
           display: "flex",
           justifyContent: "space-between",
@@ -229,6 +228,7 @@ const Landing = () => {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <button
+            className="nav-link-btn"
             onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
             style={{
               background: "none", border: "none", color: "var(--text-secondary)",
@@ -240,6 +240,7 @@ const Landing = () => {
             onMouseLeave={e => e.target.style.color = "var(--text-secondary)"}
           >Features</button>
           <button
+            className="nav-link-btn"
             onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
             style={{
               background: "none", border: "none", color: "var(--text-secondary)",
@@ -252,6 +253,7 @@ const Landing = () => {
           >How It Works</button>
           <button
             id="nav-login-btn"
+            className="nav-login-btn"
             onClick={() => setModal("login")}
             style={{
               background: "linear-gradient(135deg, #d4940a, #b8860b)",
@@ -272,6 +274,21 @@ const Landing = () => {
 
       {/* ===== Hero + App Preview Combined Section ===== */}
       <style>{`
+        .nav-container {
+          padding: 0 60px;
+        }
+        @media (max-width: 768px) {
+          .nav-container {
+            padding: 0 16px !important;
+          }
+          .nav-link-btn {
+            display: none !important;
+          }
+          .nav-login-btn {
+            padding: 8px 16px !important;
+            font-size: 12px !important;
+          }
+        }
         .hero-combined {
           display: grid;
           grid-template-columns: 1fr 1fr;
